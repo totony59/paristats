@@ -90,6 +90,21 @@ betsRouter.put("/:id", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+betsRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const existing = await prisma.bet.findUnique({ where: { id: req.params.id } });
+    if (!existing) {
+      res.status(404).json({ error: "Pari introuvable." });
+      return;
+    }
+    // Les sélections partent avec (onDelete: Cascade dans le schema).
+    await prisma.bet.delete({ where: { id: existing.id } });
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
 async function handleCreate(req: Request, res: Response) {
   let payload: z.infer<typeof createBetSchema>;
   try {

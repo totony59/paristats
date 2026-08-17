@@ -135,6 +135,14 @@ export async function updateBetOutcome(id: string, payload: UpdateBetOutcomePayl
   return res.json();
 }
 
+export async function deleteBet(id: string): Promise<void> {
+  const baseUrl = await getApiUrl();
+  const res = await fetchWithTimeout(`${baseUrl}/api/bets/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, `La suppression a échoué (${res.status}).`));
+  }
+}
+
 export async function fetchBankroll(): Promise<BankrollOverview> {
   const baseUrl = await getApiUrl();
   const res = await fetchWithTimeout(`${baseUrl}/api/bankroll`);
@@ -155,6 +163,14 @@ export async function createBankrollTransaction(
   });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, `L'ajout a échoué (${res.status}).`));
+  }
+}
+
+export async function deleteBankrollTransaction(id: string): Promise<void> {
+  const baseUrl = await getApiUrl();
+  const res = await fetchWithTimeout(`${baseUrl}/api/bankroll/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, `La suppression a échoué (${res.status}).`));
   }
 }
 

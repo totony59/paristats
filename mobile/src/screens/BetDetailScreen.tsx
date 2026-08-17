@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Bet } from "@paristats/shared";
 import type { RootStackScreenProps } from "../navigation/types";
-import { fetchBetById } from "../api/client";
+import { deleteBet, fetchBetById } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/format";
 
 type Props = RootStackScreenProps<"BetDetail">;
 
-export function BetDetailScreen({ route }: Props) {
+export function BetDetailScreen({ route, navigation }: Props) {
   const { betId } = route.params;
   const [bet, setBet] = useState<Bet | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +42,28 @@ export function BetDetailScreen({ route }: Props) {
         <ActivityIndicator color="#6366f1" />
       </View>
     );
+  }
+
+  function handleDeletePress() {
+    Alert.alert(
+      "Supprimer ce pari ?",
+      "Cette action est définitive et ne peut pas être annulée.",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Supprimer", style: "destructive", onPress: handleConfirmDelete },
+      ],
+    );
+  }
+
+  async function handleConfirmDelete() {
+    setDeleting(true);
+    try {
+      await deleteBet(betId);
+      navigation.goBack();
+    } catch (err) {
+      setDeleting(false);
+      Alert.alert("Erreur", err instanceof Error ? err.message : "Erreur inconnue.");
+    }
   }
 
   return (
@@ -78,6 +101,18 @@ export function BetDetailScreen({ route }: Props) {
           {selection.selection && <Text style={styles.selectionPick}>{selection.selection}</Text>}
         </View>
       ))}
+
+      <TouchableOpacity
+        style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+        onPress={handleDeletePress}
+        disabled={deleting}
+      >
+        {deleting ? (
+          <ActivityIndicator color="#ef4444" />
+        ) : (
+          <Text style={styles.deleteButtonText}>Supprimer ce pari</Text>
+        )}
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -192,5 +227,22 @@ const styles = StyleSheet.create({
   selectionPick: {
     color: "#cbd5e1",
     fontSize: 12,
+  },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: "#ef444466",
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteButtonText: {
+    color: "#ef4444",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

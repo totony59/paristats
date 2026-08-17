@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +12,7 @@ import {
 } from "react-native";
 import type { BankrollOverview, TransactionType } from "@paristats/shared";
 import type { TabScreenProps } from "../navigation/types";
-import { createBankrollTransaction, fetchBankroll } from "../api/client";
+import { createBankrollTransaction, deleteBankrollTransaction, fetchBankroll } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { BankrollChart } from "../components/BankrollChart";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -26,6 +27,7 @@ export function BankrollScreen(_props: Props) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -60,6 +62,25 @@ export function BankrollScreen(_props: Props) {
       setFormError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleDeletePress(id: string) {
+    Alert.alert("Supprimer cette transaction ?", "Cette action est définitive.", [
+      { text: "Annuler", style: "cancel" },
+      { text: "Supprimer", style: "destructive", onPress: () => handleConfirmDelete(id) },
+    ]);
+  }
+
+  async function handleConfirmDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await deleteBankrollTransaction(id);
+      await load();
+    } catch (err) {
+      Alert.alert("Erreur", err instanceof Error ? err.message : "Erreur inconnue.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -141,15 +162,24 @@ export function BankrollScreen(_props: Props) {
         )}
         {overview.transactions.map((t) => (
           <View key={t.id} style={styles.transactionRow}>
-            <View>
+            <View style={styles.transactionMain}>
               <Text style={styles.transactionType}>{t.type === "deposit" ? "Dépôt" : "Retrait"}</Text>
               <Text style={styles.transactionDate}>{formatDate(t.date)}</Text>
               {t.note && <Text style={styles.transactionNote}>{t.note}</Text>}
             </View>
-            <Text style={[styles.transactionAmount, t.type === "deposit" ? styles.profitPositive : styles.profitNegative]}>
-              {t.type === "deposit" ? "+" : "-"}
-              {formatCurrency(t.amount)}
-            </Text>
+            <View style={styles.transactionEnd}>
+              <Text style={[styles.transactionAmount, t.type === "deposit" ? styles.profitPositive : styles.profitNegative]}>
+                {t.type === "deposit" ? "+" : "-"}
+                {formatCurrency(t.amount)}
+              </Text>
+              {deletingId === t.id ? (
+                <ActivityIndicator color="#ef4444" size="small" />
+              ) : (
+                <TouchableOpacity onPress={() => handleDeletePress(t.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.deleteLink}>Supprimer</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ))}
       </View>
@@ -251,6 +281,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: "#232b3d",
+  },
+  transactionMain: {
+    flex: 1,
+  },
+  transactionEnd: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  deleteLink: {
+    color: "#ef4444",
+    fontSize: 11,
+    fontWeight: "600",
   },
   transactionType: {
     color: "#f1f5f9",

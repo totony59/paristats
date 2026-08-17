@@ -50,6 +50,20 @@ bankrollRouter.post("/", async (req, res, next) => {
   }
 });
 
+bankrollRouter.delete("/:id", async (req, res, next) => {
+  try {
+    const existing = await prisma.bankrollTransaction.findUnique({ where: { id: req.params.id } });
+    if (!existing) {
+      res.status(404).json({ error: "Transaction introuvable." });
+      return;
+    }
+    await prisma.bankrollTransaction.delete({ where: { id: existing.id } });
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
 function serializeTransaction(t: {
   id: string;
   type: string;
