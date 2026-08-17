@@ -7,17 +7,12 @@ import { betsRouter } from "./routes/bets.js";
 import { bankrollRouter } from "./routes/bankroll.js";
 import { statsRouter } from "./routes/stats.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { ensureUploadDir, UPLOAD_DIR } from "./config/uploads.js";
-
-ensureUploadDir();
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
 
 app.use(cors());
 app.use(express.json());
-
-app.use("/uploads/bets", express.static(UPLOAD_DIR));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });

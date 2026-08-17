@@ -73,7 +73,7 @@ export function VerificationScreen({ route, navigation }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await createBet(toCreateBetPayload(form), image);
+      await createBet(toCreateBetPayload(form));
       Alert.alert("Pari enregistré", "Les statistiques et la bankroll ont été mises à jour.", [
         { text: "OK", onPress: () => navigation.popToTop() },
       ]);

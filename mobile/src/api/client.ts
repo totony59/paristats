@@ -64,15 +64,15 @@ export async function analyzeBetImage(image: PickedImage): Promise<AIAnalyzeResp
   return res.json();
 }
 
-export async function createBet(payload: CreateBetPayload, image: PickedImage | null): Promise<Bet> {
+// La capture n'est jamais envoyée à l'enregistrement : elle ne sert qu'à l'analyse IA,
+// jamais persistée côté serveur (demande explicite : pas de conservation des images).
+export async function createBet(payload: CreateBetPayload): Promise<Bet> {
   const baseUrl = await getApiUrl();
-  const form = new FormData();
-  form.append("data", JSON.stringify(payload));
-  if (image) {
-    const { blob, name } = await toFormDataBlob(image);
-    form.append("image", blob, name);
-  }
-  const res = await fetch(`${baseUrl}/api/bets`, { method: "POST", body: form });
+  const res = await fetch(`${baseUrl}/api/bets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, `L'enregistrement a échoué (${res.status}).`));
   }
@@ -127,9 +127,4 @@ export async function fetchStats(): Promise<StatsOverview> {
     throw new Error(`Impossible de charger les statistiques (${res.status}).`);
   }
   return res.json();
-}
-
-export async function buildScreenshotUrl(screenshotPath: string): Promise<string> {
-  const baseUrl = await getApiUrl();
-  return `${baseUrl}/uploads/bets/${screenshotPath}`;
 }

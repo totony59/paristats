@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Bet } from "@paristats/shared";
 import type { RootStackScreenProps } from "../navigation/types";
-import { buildScreenshotUrl, fetchBetById } from "../api/client";
+import { fetchBetById } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/format";
 
@@ -11,18 +11,13 @@ type Props = RootStackScreenProps<"BetDetail">;
 export function BetDetailScreen({ route }: Props) {
   const { betId } = route.params;
   const [bet, setBet] = useState<Bet | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetchBetById(betId)
-      .then(async (b) => {
-        if (cancelled) return;
-        setBet(b);
-        if (b.screenshotPath) {
-          setImageUrl(await buildScreenshotUrl(b.screenshotPath));
-        }
+      .then((b) => {
+        if (!cancelled) setBet(b);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -50,8 +45,6 @@ export function BetDetailScreen({ route }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {imageUrl && <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />}
-
       <View style={styles.headerRow}>
         <Text style={styles.title}>{bet.competition ?? bet.bookmaker ?? "Pari"}</Text>
         <StatusBadge status={bet.status} />
@@ -124,12 +117,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#ef4444",
     textAlign: "center",
-  },
-  image: {
-    width: "100%",
-    height: 220,
-    borderRadius: 10,
-    backgroundColor: "#000",
   },
   headerRow: {
     flexDirection: "row",

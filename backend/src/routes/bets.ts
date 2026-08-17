@@ -1,13 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import type { Bet, BetStatus, BetType } from "@paristats/shared";
 import type { Bet as PrismaBet, BetSelection as PrismaBetSelection } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
-import { handleImageUpload } from "../middleware/imageUpload.js";
 import { computeActualProfit } from "../services/betCalculations.js";
-import { EXTENSION_BY_MIME, UPLOAD_DIR } from "../config/uploads.js";
 
 const nullableString = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? null : v),
@@ -71,24 +67,18 @@ betsRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-betsRouter.post(
-  "/",
-  handleImageUpload("image", { required: false }),
-  (req: Request, res: Response, next: NextFunction) => {
-    handleCreate(req, res).catch(next);
-  },
-);
+betsRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await handleCreate(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
 
 async function handleCreate(req: Request, res: Response) {
-  const rawData = typeof req.body.data === "string" ? req.body.data : null;
-  if (!rawData) {
-    res.status(400).json({ error: "Données du pari manquantes." });
-    return;
-  }
-
   let payload: z.infer<typeof createBetSchema>;
   try {
-    payload = createBetSchema.parse(JSON.parse(rawData));
+    payload = createBetSchema.parse(req.body);
   } catch (err) {
     res.status(400).json({
       error: "Données du pari invalides.",
@@ -101,7 +91,9 @@ async function handleCreate(req: Request, res: Response) {
   // à une valeur envoyée par le client, même issue d'un écran de vérification.
   const actualProfit = computeActualProfit(payload.status, payload.stake, payload.totalReturn);
 
-  let bet = await prisma.bet.create({
+  // La capture n'est jamais persistée : elle ne sert qu'à l'analyse IA côté client,
+  // jamais renvoyée ni stockée à l'enregistrement.
+  const bet = await prisma.bet.create({
     data: {
       date: payload.date ? new Date(payload.date) : null,
       time: payload.time,
@@ -127,17 +119,6 @@ async function handleCreate(req: Request, res: Response) {
     },
     include: { selections: true },
   });
-
-  if (req.file) {
-    const extension = EXTENSION_BY_MIME[req.file.mimetype] ?? "";
-    const filename = `${bet.id}${extension}`;
-    await fs.writeFile(path.join(UPLOAD_DIR, filename), req.file.buffer);
-    bet = await prisma.bet.update({
-      where: { id: bet.id },
-      data: { screenshotPath: filename },
-      include: { selections: true },
-    });
-  }
 
   res.status(201).json(serializeBet(bet));
 }

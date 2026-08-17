@@ -78,10 +78,8 @@ PariStats/
     prisma/        schema, migrations, seed
     src/routes/     endpoints Express
     src/services/   logique métier (agrégations, calculs, analyse IA)
-    src/middleware/ upload d'images, gestion d'erreurs
-    src/config/     stockage local des captures
+    src/middleware/ upload d'images (en mémoire, jamais écrit sur disque), gestion d'erreurs
     src/db/         client Prisma
-    uploads/bets/   captures enregistrées (ignoré par git)
   shared/types/     types TypeScript partagés entre mobile/frontend/backend (@paristats/shared)
 ```
 
@@ -105,7 +103,7 @@ Chaque champ extrait a une valeur (`value`, `null` si non lisible) et un score d
 
 **Mode mock** : tant que `ANTHROPIC_API_KEY` est vide dans `backend/.env`, l'analyse utilise un générateur simulé (`backend/src/services/aiMock.ts`) — aucun appel réseau, aucune clé requise. Utile pour développer/tester l'interface sans capture réelle. La réponse de `/api/ai/analyze` inclut `mode: "mock" | "claude"`, affiché en bandeau dans l'écran de vérification. Pour forcer un scénario précis en mode mock (tests) : `POST /api/ai/analyze?scenario=<nom>` avec `simple_won`, `simple_lost`, `combine_won`, `combine_pending`, `void`, `partial` (données partiellement illisibles), `invalid_response` (teste le rejet Zod) ou `ai_error` (teste la gestion d'erreur fournisseur). Dès qu'une vraie clé est renseignée, l'analyse bascule automatiquement sur Claude Vision, sans changement de code.
 
-Les captures validées sont stockées localement dans `backend/uploads/bets/<id-du-pari>.<ext>` (jamais en base) et servies via `GET /uploads/bets/<fichier>`.
+**La capture n'est jamais conservée** : elle sert uniquement à l'analyse (`POST /api/ai/analyze` la lit en mémoire, ne l'écrit jamais sur disque), et n'est pas renvoyée au serveur à l'étape d'enregistrement (`POST /api/bets` ne reçoit que les données extraites/corrigées, pas l'image). Le champ `screenshotPath` existe dans le schema pour compatibilité mais n'est plus jamais rempli.
 
 ## Gestion de la base de données
 
