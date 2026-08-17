@@ -30,9 +30,14 @@ export interface ConnectionTestResult {
   message: string;
 }
 
+// Le backend hébergé (palier gratuit) se met en veille après 15 min d'inactivité et met
+// jusqu'à ~1 min à se réveiller au premier appel suivant : le délai doit tolérer ce cas,
+// sinon un simple réveil à froid apparaîtrait à tort comme une erreur de connexion.
+const CONNECTION_TEST_TIMEOUT_MS = 70_000;
+
 export async function testConnection(url: string): Promise<ConnectionTestResult> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), CONNECTION_TEST_TIMEOUT_MS);
   try {
     const res = await fetch(`${url.replace(/\/+$/, "")}/api/health`, {
       signal: controller.signal,
@@ -43,7 +48,10 @@ export async function testConnection(url: string): Promise<ConnectionTestResult>
     return { ok: true, message: "Connexion réussie." };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      return { ok: false, message: "Délai dépassé — vérifie l'adresse et le réseau." };
+      return {
+        ok: false,
+        message: "Toujours pas de réponse après 70s. Réessaie — le serveur met parfois ~1 min à se réveiller après une période d'inactivité.",
+      };
     }
     return { ok: false, message: "Impossible de joindre le backend. Vérifie l'adresse et le réseau." };
   } finally {
