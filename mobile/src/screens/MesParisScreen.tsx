@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -11,7 +12,7 @@ import {
 } from "react-native";
 import type { Bet } from "@paristats/shared";
 import type { TabScreenProps } from "../navigation/types";
-import { fetchBets } from "../api/client";
+import { fetchBets, updateBetOutcome } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/format";
 
@@ -21,6 +22,7 @@ export function MesParisScreen({ navigation }: Props) {
   const [bets, setBets] = useState<Bet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -44,39 +46,85 @@ export function MesParisScreen({ navigation }: Props) {
     setRefreshing(false);
   }
 
+  async function handleMarkOutcome(bet: Bet, status: "won" | "lost") {
+    setUpdatingId(bet.id);
+    try {
+      // "Gagné" sans autre précision : on prend le gain potentiel calculé à l'analyse
+      // comme retour réel (cas standard, pas de cash-out partiel). Corrigeable dans le
+      // détail du pari si le montant réel diffère.
+      await updateBetOutcome(bet.id, {
+        status,
+        totalReturn: status === "won" ? bet.potentialWin : null,
+      });
+      await load();
+    } catch (err) {
+      Alert.alert("Erreur", err instanceof Error ? err.message : "Erreur inconnue.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   function renderItem({ item }: { item: Bet }) {
     const title = item.competition ?? item.bookmaker ?? "Pari";
     const subtitle =
       item.selections.length === 1
         ? (item.selections[0].match ?? "Sélection unique")
         : `${item.selections.length} sélections`;
+    const isUpdating = updatingId === item.id;
 
     return (
-      <TouchableOpacity
-        style={styles.row}
-        onPress={() => navigation.navigate("BetDetail", { betId: item.id })}
-      >
-        <View style={styles.rowMain}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.rowSubtitle} numberOfLines={1}>
-            {subtitle}
-          </Text>
-          <Text style={styles.rowDate}>{formatDate(item.date)}</Text>
-        </View>
-        <View style={styles.rowEnd}>
-          <StatusBadge status={item.status} />
-          <Text
-            style={[
-              styles.profit,
-              item.actualProfit != null && item.actualProfit >= 0 ? styles.profitPositive : styles.profitNegative,
-            ]}
-          >
-            {item.actualProfit != null ? formatCurrency(item.actualProfit) : formatCurrency(item.stake)}
-          </Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => navigation.navigate("BetDetail", { betId: item.id })}
+        >
+          <View style={styles.rowMain}>
+            <Text style={styles.rowTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.rowSubtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+            <Text style={styles.rowDate}>{formatDate(item.date)}</Text>
+          </View>
+          <View style={styles.rowEnd}>
+            <StatusBadge status={item.status} />
+            <Text
+              style={[
+                styles.profit,
+                item.actualProfit != null && item.actualProfit >= 0
+                  ? styles.profitPositive
+                  : styles.profitNegative,
+              ]}
+            >
+              {item.actualProfit != null ? formatCurrency(item.actualProfit) : formatCurrency(item.stake)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {item.status === "pending" && (
+          <View style={styles.outcomeRow}>
+            {isUpdating ? (
+              <ActivityIndicator color="#6366f1" style={styles.outcomeLoader} />
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.outcomeButton, styles.wonButton]}
+                  onPress={() => handleMarkOutcome(item, "won")}
+                >
+                  <Text style={styles.wonButtonText}>✅ Gagné</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.outcomeButton, styles.lostButton]}
+                  onPress={() => handleMarkOutcome(item, "lost")}
+                >
+                  <Text style={styles.lostButtonText}>❌ Perdu</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+      </View>
     );
   }
 
@@ -138,14 +186,17 @@ const styles = StyleSheet.create({
     color: "#64748b",
     textAlign: "center",
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  card: {
     backgroundColor: "#161d2e",
     borderWidth: 1,
     borderColor: "#232b3d",
     borderRadius: 12,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 14,
     gap: 10,
   },
@@ -179,5 +230,37 @@ const styles = StyleSheet.create({
   },
   profitNegative: {
     color: "#ef4444",
+  },
+  outcomeRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#232b3d",
+  },
+  outcomeLoader: {
+    flex: 1,
+    paddingVertical: 10,
+  },
+  outcomeButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  wonButton: {
+    backgroundColor: "#22c55e1a",
+    borderRightWidth: 1,
+    borderRightColor: "#232b3d",
+  },
+  lostButton: {
+    backgroundColor: "#ef44441a",
+  },
+  wonButtonText: {
+    color: "#22c55e",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  lostButtonText: {
+    color: "#ef4444",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

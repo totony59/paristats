@@ -120,6 +120,12 @@ export interface CreateBetPayload {
   }>;
 }
 
+/** Payload envoyé par le mobile à PUT /api/bets/:id pour valider l'issue d'un pari. */
+export interface UpdateBetOutcomePayload {
+  status: BetStatus;
+  totalReturn?: number | null;
+}
+
 /** Réponse de GET /api/bankroll. */
 export interface BankrollOverview {
   balance: number;

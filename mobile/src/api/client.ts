@@ -6,6 +6,7 @@ import type {
   CreateBetPayload,
   DashboardStats,
   StatsOverview,
+  UpdateBetOutcomePayload,
 } from "@paristats/shared";
 import { getApiUrl } from "../config/apiConfig";
 
@@ -117,6 +118,19 @@ export async function fetchBetById(id: string): Promise<Bet> {
   const res = await fetchWithTimeout(`${baseUrl}/api/bets/${id}`);
   if (!res.ok) {
     throw new Error(`Impossible de charger ce pari (${res.status}).`);
+  }
+  return res.json();
+}
+
+export async function updateBetOutcome(id: string, payload: UpdateBetOutcomePayload): Promise<Bet> {
+  const baseUrl = await getApiUrl();
+  const res = await fetchWithTimeout(`${baseUrl}/api/bets/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, `La mise à jour a échoué (${res.status}).`));
   }
   return res.json();
 }

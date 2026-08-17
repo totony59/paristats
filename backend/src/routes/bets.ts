@@ -37,6 +37,13 @@ const createBetSchema = z.object({
   selections: z.array(createBetSelectionSchema),
 });
 
+const updateOutcomeSchema = z.object({
+  status: z.enum(["pending", "won", "lost", "void"]),
+  // Si absent, on garde le totalReturn déjà enregistré (utile pour "Perdu"/"Annulé"
+  // qui n'en ont pas besoin) ; si fourni (même null), il remplace la valeur existante.
+  totalReturn: z.number().nullable().optional(),
+});
+
 export const betsRouter = Router();
 
 betsRouter.get("/", async (_req: Request, res: Response, next: NextFunction) => {
@@ -70,6 +77,14 @@ betsRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) =
 betsRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     await handleCreate(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+betsRouter.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await handleUpdateOutcome(req, res);
   } catch (err) {
     next(err);
   }
@@ -121,6 +136,36 @@ async function handleCreate(req: Request, res: Response) {
   });
 
   res.status(201).json(serializeBet(bet));
+}
+
+async function handleUpdateOutcome(req: Request, res: Response) {
+  let payload: z.infer<typeof updateOutcomeSchema>;
+  try {
+    payload = updateOutcomeSchema.parse(req.body);
+  } catch (err) {
+    res.status(400).json({
+      error: "Données invalides.",
+      details: err instanceof z.ZodError ? err.flatten() : undefined,
+    });
+    return;
+  }
+
+  const existing = await prisma.bet.findUnique({ where: { id: req.params.id } });
+  if (!existing) {
+    res.status(404).json({ error: "Pari introuvable." });
+    return;
+  }
+
+  const totalReturn = payload.totalReturn !== undefined ? payload.totalReturn : existing.totalReturn;
+  const actualProfit = computeActualProfit(payload.status, existing.stake, totalReturn);
+
+  const bet = await prisma.bet.update({
+    where: { id: existing.id },
+    data: { status: payload.status, totalReturn, actualProfit },
+    include: { selections: true },
+  });
+
+  res.json(serializeBet(bet));
 }
 
 function serializeBet(bet: PrismaBet & { selections: PrismaBetSelection[] }): Bet {
