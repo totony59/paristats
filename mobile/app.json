@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "PariStats",
+    "slug": "paristats",
+    "owner": "anthonydbk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.paristats.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#D32116",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 2
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "PariStats a besoin d'accéder à l'appareil photo pour scanner un ticket de pari.",
+          "photosPermission": "PariStats a besoin d'accéder à tes photos pour importer une capture d'écran de ticket.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "170fe21d-b7e4-4fe1-983b-3f8f2b4fd317"
+      }
+    }
+  }
+}

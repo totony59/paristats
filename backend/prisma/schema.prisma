@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Bet {
+  id             String         @id @default(cuid())
+  date           DateTime?
+  time           String?
+  bookmaker      String?
+  sport          String?
+  competition    String?
+  betType        String?
+  totalOdds      Float?
+  stake          Float?
+  potentialWin   Float?
+  // Montant total retourné par le pari si gagné (mise + gains). null si pending/lost/void.
+  totalReturn    Float?
+  // won: totalReturn - stake | lost: -stake | void: 0 | pending: null
+  actualProfit   Float?
+  status         String         @default("pending")
+  confidence     Float?
+  betExternalId  String?
+  needsReview    Boolean        @default(false)
+  screenshotPath String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  selections     BetSelection[]
+}
+
+model BetSelection {
+  id        String  @id @default(cuid())
+  betId     String
+  bet       Bet     @relation(fields: [betId], references: [id], onDelete: Cascade)
+  match     String?
+  market    String?
+  selection String?
+  odds      Float?
+}
+
+model BankrollTransaction {
+  id     String   @id @default(cuid())
+  type   String
+  amount Float
+  date   DateTime @default(now())
+  note   String?
+}
