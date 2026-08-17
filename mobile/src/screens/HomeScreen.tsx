@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { DashboardStats } from "@paristats/shared";
 import type { TabScreenProps } from "../navigation/types";
 import { fetchDashboard } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { formatCurrency, formatPercent } from "../utils/format";
+import logoWordmark from "../../assets/logo-wordmark.png";
 
 type Props = TabScreenProps<"Home">;
 
@@ -27,7 +28,7 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.appName}>PariStats</Text>
+        <Image source={logoWordmark} style={styles.logo} resizeMode="contain" />
         <Text style={styles.subtitle}>Suivi et analyse de tes paris sportifs</Text>
         <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate("Scanner")}>
           <Text style={styles.scanButtonText}>📷 Scanner un pari</Text>
@@ -67,10 +68,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 24,
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#f1f5f9",
+  logo: {
+    width: 260,
+    height: 130,
   },
   subtitle: {
     color: "#94a3b8",
