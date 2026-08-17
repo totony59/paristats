@@ -62,14 +62,28 @@ export function StatistiquesScreen(_props: Props) {
 
       <BreakdownSection title="Par type de pari" items={stats.byBetType} />
       <BreakdownSection title="Par compétition" items={stats.byCompetition} />
+      <BreakdownSection
+        title="Par équipe"
+        items={stats.byTeam}
+        caption="Basé uniquement sur tes paris simples où la sélection est directement une équipe (résultat du match) — les combinés et les autres marchés (totaux, BTTS...) ne peuvent pas être attribués fiablement à une seule équipe."
+      />
     </ScrollView>
   );
 }
 
-function BreakdownSection({ title, items }: { title: string; items: StatsBreakdown[] }) {
+function BreakdownSection({
+  title,
+  items,
+  caption,
+}: {
+  title: string;
+  items: StatsBreakdown[];
+  caption?: string;
+}) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
+      {caption && <Text style={styles.caption}>{caption}</Text>}
       {items.length === 0 && <Text style={styles.empty}>Pas assez de données.</Text>}
       {items.map((item) => (
         <View key={item.key} style={styles.breakdownRow}>
@@ -133,6 +147,11 @@ const styles = StyleSheet.create({
   empty: {
     color: "#64748b",
     fontSize: 13,
+  },
+  caption: {
+    color: "#64748b",
+    fontSize: 11,
+    lineHeight: 15,
   },
   breakdownRow: {
     flexDirection: "row",

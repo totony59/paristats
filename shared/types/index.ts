@@ -168,4 +168,7 @@ export interface StatsOverview {
   };
   byBetType: StatsBreakdown[];
   byCompetition: StatsBreakdown[];
+  /** Paris simples uniquement (sélection = nom d'équipe exact) — les combinés ne peuvent
+   * pas être attribués fiablement à une équipe précise. */
+  byTeam: StatsBreakdown[];
 }

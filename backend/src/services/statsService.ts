@@ -1,7 +1,9 @@
-import type { Bet } from "@prisma/client";
+import type { Bet, BetSelection } from "@prisma/client";
 import type { StatsBreakdown, StatsOverview } from "@paristats/shared";
 import { prisma } from "../db/prisma.js";
 import { average, sum } from "../utils/math.js";
+
+type BetWithSelections = Bet & { selections: BetSelection[] };
 
 const BET_TYPE_LABELS: Record<string, string> = {
   simple: "Simple",
@@ -9,20 +11,19 @@ const BET_TYPE_LABELS: Record<string, string> = {
 };
 
 export async function getStatsOverview(): Promise<StatsOverview> {
-  const bets = await prisma.bet.findMany();
+  const bets = await prisma.bet.findMany({ include: { selections: true } });
 
   return {
     global: computeGlobal(bets),
     byBetType: computeBreakdown(
-      bets,
-      (bet) => bet.betType ?? "unknown",
+      groupBy(bets, (bet) => bet.betType ?? "unknown"),
       (key) => BET_TYPE_LABELS[key] ?? "Non renseigné",
     ),
     byCompetition: computeBreakdown(
-      bets,
-      (bet) => bet.competition ?? "unknown",
+      groupBy(bets, (bet) => bet.competition ?? "unknown"),
       (key) => (key === "unknown" ? "Compétition non renseignée" : key),
     ),
+    byTeam: computeBreakdown(groupByTeam(bets), (key) => key),
   };
 }
 
@@ -45,12 +46,8 @@ function computeGlobal(bets: Bet[]): StatsOverview["global"] {
   };
 }
 
-function computeBreakdown(
-  bets: Bet[],
-  keyOf: (bet: Bet) => string,
-  labelOf: (key: string) => string,
-): StatsBreakdown[] {
-  const groups = new Map<string, Bet[]>();
+function groupBy<T extends Bet>(bets: T[], keyOf: (bet: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
   for (const bet of bets) {
     const key = keyOf(bet);
     const list = groups.get(key);
@@ -60,7 +57,44 @@ function computeBreakdown(
       groups.set(key, [bet]);
     }
   }
+  return groups;
+}
 
+/**
+ * Regroupe par équipe, uniquement à partir des paris SIMPLES dont la sélection correspond
+ * exactement à l'une des deux équipes du match (ex. "PSG" sur "PSG - Marseille"). Les
+ * combinés et les marchés qui ne désignent pas directement une équipe (totaux, BTTS,
+ * double chance...) sont exclus : impossible d'attribuer un gain/perte à une équipe
+ * précise sans deviner, ce que l'app ne fait jamais.
+ */
+function groupByTeam(bets: BetWithSelections[]): Map<string, BetWithSelections[]> {
+  const groups = new Map<string, BetWithSelections[]>();
+  for (const bet of bets) {
+    if (bet.betType !== "simple" || bet.selections.length !== 1) continue;
+    const selection = bet.selections[0];
+    if (!selection.match || !selection.selection) continue;
+    const teams = selection.match
+      .split(" - ")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const picked = teams.find(
+      (team) => team.toLowerCase() === selection.selection!.trim().toLowerCase(),
+    );
+    if (!picked) continue;
+    const list = groups.get(picked);
+    if (list) {
+      list.push(bet);
+    } else {
+      groups.set(picked, [bet]);
+    }
+  }
+  return groups;
+}
+
+function computeBreakdown(
+  groups: Map<string, Bet[]>,
+  labelOf: (key: string) => string,
+): StatsBreakdown[] {
   const breakdown: StatsBreakdown[] = [];
   for (const [key, groupBets] of groups) {
     const settled = groupBets.filter((b) => b.status !== "pending");
