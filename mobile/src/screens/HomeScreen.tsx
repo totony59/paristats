@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import type { DashboardStats } from "@paristats/shared";
 import type { TabScreenProps } from "../navigation/types";
-import { DEFAULT_API_URL, getApiUrl, setApiUrl, testConnection } from "../config/apiConfig";
+import { DEFAULT_API_URL, getApiUrl, resetApiUrl, setApiUrl, testConnection } from "../config/apiConfig";
 import { fetchDashboard } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { formatCurrency, formatPercent } from "../utils/format";
@@ -42,6 +42,12 @@ export function HomeScreen({ navigation }: Props) {
 
   async function handleSaveUrl() {
     await setApiUrl(apiUrl);
+    setTestResult(null);
+  }
+
+  async function handleResetUrl() {
+    await resetApiUrl();
+    setApiUrlState(DEFAULT_API_URL);
     setTestResult(null);
   }
 
@@ -84,7 +90,8 @@ export function HomeScreen({ navigation }: Props) {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Connexion backend</Text>
         <Text style={styles.cardHint}>
-          Adresse du serveur PariStats (PC sur le même réseau Wi-Fi que ce téléphone).
+          Adresse du serveur PariStats. Par défaut, le backend hébergé — inutile d'y toucher sauf
+          pour du développement local.
         </Text>
         <TextInput
           style={styles.input}
@@ -92,7 +99,7 @@ export function HomeScreen({ navigation }: Props) {
           onChangeText={setApiUrlState}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="http://192.168.1.100:3001"
+          placeholder="https://paristats-backend.onrender.com"
           placeholderTextColor="#64748b"
         />
         <View style={styles.buttonRow}>
@@ -107,6 +114,9 @@ export function HomeScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
         </View>
+        <TouchableOpacity onPress={handleResetUrl}>
+          <Text style={styles.resetLink}>Réinitialiser à l'adresse par défaut</Text>
+        </TouchableOpacity>
         {testResult && (
           <Text style={[styles.testResult, { color: testResult.ok ? "#22c55e" : "#ef4444" }]}>
             {testResult.ok ? "✅ " : "❌ "}
@@ -207,5 +217,11 @@ const styles = StyleSheet.create({
   testResult: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  resetLink: {
+    color: "#818cf8",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
