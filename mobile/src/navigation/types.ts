@@ -16,6 +16,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Verification: { analysis: AIAnalyzeResponse; image: PickedImage };
   BetDetail: { betId: string };
+  Settings: undefined;
 };
 
 /** Props pour un écran vivant dans la barre d'onglets (peut aussi naviguer vers un écran du stack parent). */

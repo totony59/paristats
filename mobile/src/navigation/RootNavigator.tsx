@@ -4,6 +4,7 @@ import type { RootStackParamList } from "./types";
 import { MainTabs } from "./MainTabs";
 import { VerificationScreen } from "../screens/VerificationScreen";
 import { BetDetailScreen } from "../screens/BetDetailScreen";
+import { SettingsScreen } from "../screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -28,6 +29,7 @@ export function RootNavigator() {
           component={BetDetailScreen}
           options={{ title: "Détail du pari" }}
         />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: "Réglages" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,6 +1,7 @@
-import { Text } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import type { MainTabParamList } from "./types";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { MainTabParamList, RootStackParamList } from "./types";
 import { HomeScreen } from "../screens/HomeScreen";
 import { ScannerScreen } from "../screens/ScannerScreen";
 import { MesParisScreen } from "../screens/MesParisScreen";
@@ -35,7 +36,24 @@ export function MainTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: "PariStats", tabBarLabel: "Accueil" }} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={({ navigation }) => ({
+          title: "PariStats",
+          tabBarLabel: "Accueil",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.getParent<NativeStackNavigationProp<RootStackParamList>>()?.navigate("Settings")
+              }
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 16 }}
+            >
+              <Text style={{ fontSize: 20 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        })}
+      />
       <Tab.Screen name="Scanner" component={ScannerScreen} options={{ title: "Scanner un pari", tabBarLabel: "Scanner" }} />
       <Tab.Screen name="MesParis" component={MesParisScreen} options={{ title: "Mes paris", tabBarLabel: "Mes paris" }} />
       <Tab.Screen name="Bankroll" component={BankrollScreen} options={{ title: "Bankroll", tabBarLabel: "Bankroll" }} />
