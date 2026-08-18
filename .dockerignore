@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+.git
+mobile/android
+mobile/ios
+mobile/.expo
+mobile/.expo-shared
+Images
+documents
+scratchpad
+*.apk
+*.log
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
