@@ -28,6 +28,7 @@ export function MainTabs() {
       screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: "#161d2e" },
         headerTintColor: "#f1f5f9",
+        headerTitleAlign: "center",
         tabBarStyle: { backgroundColor: "#161d2e", borderTopColor: "#232b3d" },
         tabBarActiveTintColor: "#818cf8",
         tabBarInactiveTintColor: "#64748b",
@@ -40,7 +41,7 @@ export function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={({ navigation }) => ({
-          title: "PariStats",
+          title: "",
           tabBarLabel: "Accueil",
           headerRight: () => (
             <TouchableOpacity
