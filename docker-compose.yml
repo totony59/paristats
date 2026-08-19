@@ -34,6 +34,15 @@ services:
       - "3001:3001"
     networks: [internal]
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on: [backend]
+    networks: [internal]
+
 networks:
   internal:
 
